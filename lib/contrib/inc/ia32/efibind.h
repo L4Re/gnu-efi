@@ -25,7 +25,7 @@ Revision History
 // Basic int types of various widths
 //
 
-#if !defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L ) && !defined(__cplusplus)
+#if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L )) && !defined(__cplusplus)
 
     // No ANSI C 1999/2000 stdint.h integer width declarations 
 
@@ -77,7 +77,7 @@ Revision History
     #endif
     typedef uint32_t            uintptr_t;
     typedef int32_t             intptr_t;
-#elif defined(__GNUC__)
+#else
     #include <stdint.h>
 #endif
 
@@ -87,7 +87,12 @@ Revision History
 
 #include <stddef.h>
 
-typedef wchar_t CHAR16;
+// L4: C++ variant is added
+#ifdef __cplusplus
+typedef char16_t CHAR16;
+#else
+typedef uint16_t CHAR16;
+#endif
 #define WCHAR CHAR16
 
 
@@ -103,7 +108,7 @@ typedef uint16_t   UINT16;
 typedef int16_t    INT16;
 
 typedef uint8_t    UINT8;
-typedef char       CHAR8;
+typedef unsigned char       CHAR8;
 typedef int8_t     INT8;
 
 #undef VOID
@@ -285,7 +290,7 @@ typedef uint32_t   UINTN;
 #endif
 
 /* No efi call wrapper for IA32 architecture */
-#define uefi_call_wrapper(func, va_num, ...)	func(__VA_ARGS__)
+#define uefi_call_wrapper(func, va_num, ...)	(func)(__VA_ARGS__)
 #define EFI_FUNCTION
 
 #ifdef _MSC_EXTENSIONS

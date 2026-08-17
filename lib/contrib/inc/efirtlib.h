@@ -45,6 +45,7 @@ RtZeroMem (
     );
 
 VOID
+EFIAPI
 RUNTIMEFUNCTION
 RtSetMem (
     IN VOID     *Buffer,
@@ -53,8 +54,18 @@ RtSetMem (
     );
 
 VOID
+EFIAPI
 RUNTIMEFUNCTION
 RtCopyMem (
+    IN VOID     *Dest,
+    IN VOID     *Src,
+    IN UINTN    len
+    );
+
+VOID
+EFIAPI
+RUNTIMEFUNCTION
+RtCopyMemC (
     IN VOID     *Dest,
     IN CONST VOID     *Src,
     IN UINTN    len
@@ -140,12 +151,20 @@ RtStrSize (
     IN CONST CHAR16   *s1
     );
 
-INTN
+BOOLEAN
+EFIAPI
 RUNTIMEFUNCTION
 RtCompareGuid (
-    IN EFI_GUID     *Guid1,
-    IN EFI_GUID     *Guid2
+    IN CONST EFI_GUID     *Guid1,
+    IN CONST EFI_GUID     *Guid2
     );
+
+BOOLEAN
+EFIAPI
+RUNTIMEFUNCTION
+RtIsZeroGuid (
+    IN CONST EFI_GUID     *Guid1
+);
 
 UINT8
 RUNTIMEFUNCTION

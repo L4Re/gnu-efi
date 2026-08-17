@@ -34,18 +34,18 @@
 #    SUCH DAMAGE.
 #
 
-SRCDIR = .
+VPATH ?= .
+SRCDIR = $(VPATH)
 
-VPATH = $(SRCDIR)
-TOPDIR = $(SRCDIR)/..
 
 include $(SRCDIR)/../Make.defaults
 
 FILES = boxdraw smbios console crc data debug dpath \
         entry error event exit guid hand hw init lock \
-        misc pause print sread str cmdline\
-	runtime/rtlock runtime/efirtlib runtime/rtstr runtime/vm runtime/rtdata  \
-	$(ARCH)/initplat $(ARCH)/math $(ARCH)/setjmp
+        misc pause sread str cmdline runtime/rtlock \
+        runtime/efirtlib runtime/rtstr runtime/vm runtime/rtdata \
+        $(ARCH)/initplat $(ARCH)/math $(ARCH)/setjmp \
+        ctors print ms_va_print va_print
 
 ifeq ($(ARCH),ia64)
 FILES += $(ARCH)/salpal $(ARCH)/palproc
@@ -60,32 +60,38 @@ FILES += $(ARCH)/uldiv $(ARCH)/ldivmod $(ARCH)/div $(ARCH)/llsl $(ARCH)/llsr \
 	 $(ARCH)/mullu
 endif
 
-OBJS  = $(FILES:%=%.o) ctors.o
+OBJS  = $(FILES:%=%.o)
 
 SUBDIRS = ia32 x86_64 ia64 aarch64 arm mips64el riscv64 loongarch64 runtime
 
-LIBDIRINSTALL = $(INSTALLROOT)$(LIBDIR)
+all:	libefi.a
 
-all: libsubdirs libefi.a
+$(OBJS): | libsubdirs
 
-.PHONY: libsubdirs
 libsubdirs:
 	@set -e ; for sdir in $(SUBDIRS); do mkdir -p $$sdir; done
 
-$(OBJS): libsubdirs
-
 libefi.a: $(OBJS)
-	$(AR) $(ARFLAGS) $@ $^
+	@$(ECHO) "  AR       $(notdir $@)"
+	$(HIDE)$(AR) $(ARFLAGS) $@ $^
+
+$(SRCDIR)/ms_va_print.c:
+	@$(ECHO) "  CP       $(notdir ms_va_print.c)"
+	$(HIDE)cp $(SRCDIR)/va_print.c $(SRCDIR)/ms_va_print.c
+
+ms_va_print.o: EFI_CFLAGS += -Wno-error=unused-function -D__GNU_EFI_INTERNAL_USE_MS_VA_ABI
+
+va_print.o: EFI_CFLAGS += -Wno-error=unused-function
+
+print.o: EFI_CFLAGS += -Wno-error=unused-function
 
 clean:
-	@rm -vf libefi.a *~ $(OBJS) */*.o
+	@rm -vf libefi.a *~ $(OBJS) */*.o $(SRCDIR)/ms_va_print.c
 
-$(LIBDIRINSTALL):
-	mkdir -p $@
+install:
+	mkdir -p $(INSTALLROOT)$(LIBDIR)
+	$(INSTALL) -m 644 libefi.a $(INSTALLROOT)$(LIBDIR)
 
-$(LIBDIRINSTALL)/libefi.a: libefi.a | $(LIBDIRINSTALL)
-	$(INSTALL) -m 644 $< $(dir $@)
-
-install: $(LIBDIRINSTALL)/libefi.a
+.PHONY: all libsubdirs clean install
 
 include $(SRCDIR)/../Make.rules

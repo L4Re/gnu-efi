@@ -1,7 +1,7 @@
 /*
- * Copright (C) 2014 - 2015 Linaro Ltd.
+ * Copyright (C) 2014 - 2015 Linaro Ltd.
  * Author: Ard Biesheuvel <ard.biesheuvel@linaro.org>
- * Copright (C) 2017 Lemote Co.
+ * Copyright (C) 2017 Lemote Co.
  * Author: Heiher <r@hev.cc>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,7 +17,7 @@
  * either version 2 of the License, or (at your option) any later version.
  */
 
-#if !defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L ) && !defined(__cplusplus)
+#if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L )) && !defined(__cplusplus)
 
 // ANSI C 1999/2000 stdint.h integer width declarations
 
@@ -42,7 +42,12 @@ typedef int64_t             intptr_t;
 
 #include <stddef.h>
 
-typedef wchar_t CHAR16;
+// L4: C++ variant is added
+#ifdef __cplusplus
+typedef char16_t CHAR16;
+#else
+typedef uint16_t CHAR16;
+#endif
 #define WCHAR CHAR16
 
 typedef uint64_t   UINT64;
@@ -55,7 +60,7 @@ typedef uint16_t   UINT16;
 typedef int16_t    INT16;
 
 typedef uint8_t    UINT8;
-typedef char       CHAR8;
+typedef unsigned char       CHAR8;
 typedef int8_t     INT8;
 
 #undef VOID
@@ -153,12 +158,12 @@ typedef uint64_t   UINTN;
 
 #define INTERFACE_DECL(x) struct x
 
-#define uefi_call_wrapper(func, va_num, ...) func(__VA_ARGS__)
+#define uefi_call_wrapper(func, va_num, ...) (func)(__VA_ARGS__)
 #define EFI_FUNCTION
 
 static inline UINT64 swap_uint64 (UINT64 v)
 {
-	asm volatile (
+	__asm__ volatile (
 		"dsbh	%[v], %[v] \n\t"
 		"dshd	%[v], %[v] \n\t"
 		:[v]"+r"(v)

@@ -16,12 +16,6 @@ Revision History
 
 --*/
 
-
-// Add a predefined macro to detect usage of the library
-#ifndef _GNU_EFI
-#define _GNU_EFI
-#endif
-
 //
 // Build flags on input
 //  EFI32
@@ -37,7 +31,15 @@ Revision History
 extern "C" {
 #endif
 
-#define EFI_FIRMWARE_VENDOR         L"INTEL"
+#if defined(__APPLE__)
+#error "Mach-O toolchain isn't supported; please compile with an ELF toolchain from Homebrew"
+#endif
+
+// Add a predefined macro to detect usage of the library
+#define _GNU_EFI
+#define _GNU_EFI_4_0
+
+#define EFI_FIRMWARE_VENDOR         u"INTEL"
 #define EFI_FIRMWARE_MAJOR_REVISION 12
 #define EFI_FIRMWARE_MINOR_REVISION 33
 #define EFI_FIRMWARE_REVISION ((EFI_FIRMWARE_MAJOR_REVISION <<16) | (EFI_FIRMWARE_MINOR_REVISION))
@@ -77,6 +79,7 @@ extern "C" {
 #include "efifs.h"
 #include "efierr.h"
 #include "efiui.h"
+#include "efimp.h"
 #include "efiip.h"
 #include "efiudp.h"
 #include "efitcp.h"

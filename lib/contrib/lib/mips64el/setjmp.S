@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 - 2008, Intel Corporation. All rights reserved.
- * Copright (c) 2017 Lemote Co.
+ * Copyright (c) 2017 Lemote Co.
  * Author: Heiher <r@hev.cc>
  *
  * This program and the accompanying materials are licensed and made
@@ -18,9 +18,9 @@ BASIS,
 	.text
 	.p2align 3
 
-	.globl	setjmp
-	.type	setjmp, @function
-setjmp:
+	.globl	base_setjmp
+	.type	base_setjmp, @function
+base_setjmp:
 	sd	$ra, 0x00($a0)
 	sd	$sp, 0x08($a0)
 	sd	$fp, 0x10($a0)
@@ -54,9 +54,9 @@ setjmp:
 	move	$v0, $zero
 	jr	$ra
 
-	.globl	longjmp
-	.type	longjmp, @function
-longjmp:
+	.globl	base_longjmp
+	.type	base_longjmp, @function
+base_longjmp:
 	ld	$ra, 0x00($a0)
 	ld	$sp, 0x08($a0)
 	ld	$fp, 0x10($a0)

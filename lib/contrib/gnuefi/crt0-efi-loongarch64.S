@@ -32,25 +32,26 @@ _start:
 	la.local  $a0, ImageBase	// a0: ImageBase
 	la.local  $a1, _DYNAMIC		// a1: DynamicSection
 	bl        _relocate
-	bnez	  $a0, 0f
+	bnez	  $a0, .L_exit
 
 	ld.d	  $a0, $sp, 8
 	ld.d	  $a1, $sp, 16
 	bl        _entry
 
-0:	ld.d	  $ra, $sp, 0
+.L_exit:
+	ld.d	  $ra, $sp, 0
 	addi.d	  $sp, $sp, 24
 	jr	      $ra
 
 // hand-craft a dummy .reloc section so EFI knows it's a relocatable executable:
 
  	.data
-dummy:	.4byte	0
+dummy0:	.4byte	0
+dummy1:	.4byte	0
 
 #define IMAGE_REL_ABSOLUTE	0
- 	.section .reloc, "a"
-label1:
-	.4byte	dummy-label1				// Page RVA
+ 	.section .reloc, "a", %progbits
+	.4byte	dummy1 - dummy0				// Page RVA
 	.4byte	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy

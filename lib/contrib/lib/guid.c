@@ -48,56 +48,58 @@ static struct {
     EFI_GUID        *Guid;
     WCHAR           *GuidName;
 } KnownGuids[] = {
-	{  &NullGuid,                                       L"G0" },
-	{  &gEfiGlobalVariableGuid,                         L"EfiVar" },
+	{  &gZeroGuid,                                      u"NullGuid" },
+	{  &gEfiGlobalVariableGuid,                         u"EfiVar" },
 
-	{  &VariableStoreProtocol,                          L"VarStore" },
-	{  &gEfiDevicePathProtocolGuid,                     L"DevPath" },
-	{  &gEfiLoadedImageProtocolGuid,                    L"LdImg" },
-	{  &gEfiSimpleTextInProtocolGuid,                   L"TxtIn" },
-	{  &gEfiSimpleTextOutProtocolGuid,                  L"TxtOut" },
-	{  &gEfiBlockIoProtocolGuid,                        L"BlkIo" },
-	{  &gEfiBlockIo2ProtocolGuid,                       L"BlkIo2" },
-	{  &gEfiDiskIoProtocolGuid,                         L"DskIo" },
-	{  &gEfiDiskIo2ProtocolGuid,                        L"DskIo2" },
-	{  &gEfiSimpleFileSystemProtocolGuid,               L"Fs" },
-	{  &gEfiLoadFileProtocolGuid,                       L"LdFile" },
-	{  &gEfiDeviceIoProtocolGuid,                       L"DevIo" },
-	{  &gEfiComponentNameProtocolGuid,                  L"CName" },
-	{  &gEfiComponentName2ProtocolGuid,                 L"CName2" },
+	{  &VariableStoreProtocol,                          u"VarStore" },
+	{  &gEfiDevicePathProtocolGuid,                     u"DevPath" },
+	{  &gEfiLoadedImageProtocolGuid,                    u"LdImg" },
+	{  &gEfiSimpleTextInProtocolGuid,                   u"TxtIn" },
+	{  &gEfiSimpleTextOutProtocolGuid,                  u"TxtOut" },
+	{  &gEfiBlockIoProtocolGuid,                        u"BlkIo" },
+	{  &gEfiBlockIo2ProtocolGuid,                       u"BlkIo2" },
+	{  &gEfiDiskIoProtocolGuid,                         u"DskIo" },
+	{  &gEfiDiskIo2ProtocolGuid,                        u"DskIo2" },
+	{  &gEfiSimpleFileSystemProtocolGuid,               u"Fs" },
+	{  &gEfiLoadFileProtocolGuid,                       u"LdFile" },
+	{  &gEfiDeviceIoProtocolGuid,                       u"DevIo" },
+	{  &gEfiComponentNameProtocolGuid,                  u"CName" },
+	{  &gEfiComponentName2ProtocolGuid,                 u"CName2" },
 
-	{  &gEfiFileInfoGuid,                               L"FileInfo" },
-	{  &gEfiFileSystemInfoGuid,                         L"FsInfo" },
-	{  &gEfiFileSystemVolumeLabelInfoIdGuid,            L"FsVolInfo" },
+    {  &gEfiMpServicesProtocolGuid,                     u"Mp" },
 
-	{  &gEfiUnicodeCollationProtocolGuid,               L"Unicode" },
-	{  &LegacyBootProtocol,                             L"LegacyBoot" },
-	{  &gEfiSerialIoProtocolGuid,                       L"SerIo" },
-	{  &VgaClassProtocol,                               L"VgaClass"},
-	{  &gEfiSimpleNetworkProtocolGuid,                  L"Net" },
-	{  &gEfiNetworkInterfaceIdentifierProtocolGuid,     L"Nii" },
-	{  &gEfiPxeBaseCodeProtocolGuid,                    L"Pxe" },
-	{  &gEfiPxeBaseCodeCallbackProtocolGuid,            L"PxeCb" },
+	{  &gEfiFileInfoGuid,                               u"FileInfo" },
+	{  &gEfiFileSystemInfoGuid,                         u"FsInfo" },
+	{  &gEfiFileSystemVolumeLabelInfoIdGuid,            u"FsVolInfo" },
 
-	{  &TextOutSpliterProtocol,                         L"TxtOutSplit" },
-	{  &ErrorOutSpliterProtocol,                        L"ErrOutSplit" },
-	{  &TextInSpliterProtocol,                          L"TxtInSplit" },
-	{  &gEfiPcAnsiGuid,                                 L"PcAnsi" },
-	{  &gEfiVT100Guid,                                  L"Vt100" },
-	{  &gEfiVT100PlusGuid,                              L"Vt100Plus" },
-	{  &gEfiVTUTF8Guid,                                 L"VtUtf8" },
-	{  &UnknownDevice,                                  L"UnknownDev" },
+	{  &gEfiUnicodeCollationProtocolGuid,               u"Unicode" },
+	{  &LegacyBootProtocol,                             u"LegacyBoot" },
+	{  &gEfiSerialIoProtocolGuid,                       u"SerIo" },
+	{  &VgaClassProtocol,                               u"VgaClass"},
+	{  &gEfiSimpleNetworkProtocolGuid,                  u"Net" },
+	{  &gEfiNetworkInterfaceIdentifierProtocolGuid,     u"Nii" },
+	{  &gEfiPxeBaseCodeProtocolGuid,                    u"Pxe" },
+	{  &gEfiPxeBaseCodeCallbackProtocolGuid,            u"PxeCb" },
 
-	{  &EfiPartTypeSystemPartitionGuid,                 L"ESP" },
-	{  &EfiPartTypeLegacyMbrGuid,                       L"GPT MBR" },
+	{  &TextOutSpliterProtocol,                         u"TxtOutSplit" },
+	{  &ErrorOutSpliterProtocol,                        u"ErrOutSplit" },
+	{  &TextInSpliterProtocol,                          u"TxtInSplit" },
+	{  &gEfiPcAnsiGuid,                                 u"PcAnsi" },
+	{  &gEfiVT100Guid,                                  u"Vt100" },
+	{  &gEfiVT100PlusGuid,                              u"Vt100Plus" },
+	{  &gEfiVTUTF8Guid,                                 u"VtUtf8" },
+	{  &UnknownDevice,                                  u"UnknownDev" },
 
-	{  &ShellInterfaceProtocol,                         L"ShellInt" },
-	{  &SEnvId,                                         L"SEnv" },
-	{  &SProtId,                                        L"ShellProtId" },
-	{  &SMapId,                                         L"ShellDevPathMap" },
-	{  &SAliasId,                                       L"ShellAlias" },
+	{  &EfiPartTypeSystemPartitionGuid,                 u"ESP" },
+	{  &EfiPartTypeLegacyMbrGuid,                       u"GPT MBR" },
 
-	{  NULL, L"" }
+	{  &ShellInterfaceProtocol,                         u"ShellInt" },
+	{  &SEnvId,                                         u"SEnv" },
+	{  &SProtId,                                        u"ShellProtId" },
+	{  &SMapId,                                         u"ShellDevPathMap" },
+	{  &SAliasId,                                       u"ShellAlias" },
+
+	{  NULL, u"" }
 };
 
 //
@@ -114,10 +116,11 @@ InitializeGuid (
 {
 }
 
-INTN
-CompareGuid(
-    IN EFI_GUID     *Guid1,
-    IN EFI_GUID     *Guid2
+BOOLEAN
+EFIAPI
+CompareGuid_1 (
+    IN CONST EFI_GUID     *Guid1,
+    IN CONST EFI_GUID     *Guid2
     )
 /*++
 
@@ -131,11 +134,20 @@ Arguments:
     Guid2       - guid to compare
 
 Returns:
-    = 0     if Guid1 == Guid2
+    = 1     if Guid1 == Guid2
 
 --*/
 {
     return RtCompareGuid (Guid1, Guid2);
+}
+
+BOOLEAN
+EFIAPI
+IsZeroGuid (
+IN CONST EFI_GUID *Guid1
+)
+{
+	return RtIsZeroGuid(Guid1);
 }
 
 
@@ -153,7 +165,7 @@ GuidToString (
     //
 
     for (Index=0; KnownGuids[Index].Guid; Index++) {
-        if (CompareGuid(Guid, KnownGuids[Index].Guid) == 0) {
+        if (CompareGuid(Guid, KnownGuids[Index].Guid)) {
             UnicodeSPrint (Buffer, 0, KnownGuids[Index].GuidName);
             return ;
         }
@@ -163,7 +175,7 @@ GuidToString (
     // Else dump it
     //
 
-    UnicodeSPrint (Buffer, 0, L"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+    UnicodeSPrint (Buffer, 0, u"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
         Guid->Data1,
         Guid->Data2,
         Guid->Data3,

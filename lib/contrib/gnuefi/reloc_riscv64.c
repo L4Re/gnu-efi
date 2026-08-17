@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-3-Clause
 /* reloc_riscv.c - position independent ELF shared object relocator
    Copyright (C) 2018 Alexander Graf <agraf@suse.de>
    Copyright (C) 2014 Linaro Ltd. <ard.biesheuvel@linaro.org>
@@ -38,7 +38,7 @@
 
 #include <efi.h>
 
-#include <elf.h>
+#include "subst/elf.h"
 
 #define Elf_Dyn		Elf64_Dyn
 #define Elf_Rela	Elf64_Rela

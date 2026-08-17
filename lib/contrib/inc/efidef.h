@@ -35,6 +35,9 @@ typedef bool BOOLEAN;
 #endif
 #ifndef TRUE
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L)
+#if defined(_MSC_VER)
+#include <stdbool.h>
+#endif
     #define TRUE    true
     #define FALSE   false
 #else
@@ -76,6 +79,10 @@ typedef VOID            *EFI_EVENT;
     #define OUT
     #define OPTIONAL
 #endif
+
+// STATIC - Name is internal to the module
+#define STATIC      static
+
 
 
 //
@@ -209,6 +216,7 @@ typedef enum {
 #define EFI_MEMORY_MORE_RELIABLE 0x0000000000010000
 #define EFI_MEMORY_SP            0x0000000000040000
 #define EFI_MEMORY_CPU_CRYPTO    0x0000000000080000
+#define EFI_MEMORY_HOT_PLUGGABLE 0x0000000000100000
 #define EFI_MEMORY_ISA_VALID     0x4000000000000000
 #define EFI_MEMORY_ISA_MASK      0x0FFFF00000000000
 

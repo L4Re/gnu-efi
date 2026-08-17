@@ -69,10 +69,11 @@ RtStrnCpy (
     )
 // copy strings
 {
+    
     UINTN Size = RtStrnLen(Src, Len);
     if (Size != Len)
         RtSetMem(Dest + Size, (Len - Size) * sizeof(CHAR16), '\0');
-    RtCopyMem(Dest, Src, Size * sizeof(CHAR16));
+    RtCopyMemC(Dest, Src, Size * sizeof(CHAR16));
 }
 
 #ifndef __GNUC__
@@ -105,10 +106,11 @@ RtStpnCpy (
     )
 // copy strings
 {
+    
     UINTN Size = RtStrnLen(Src, Len);
     if (Size != Len)
         RtSetMem(Dest + Size, (Len - Size) * sizeof(CHAR16), '\0');
-    RtCopyMem(Dest, Src, Size * sizeof(CHAR16));
+    RtCopyMemC(Dest, Src, Size * sizeof(CHAR16));
     return Dest + Size;
 }
 
@@ -140,7 +142,7 @@ RtStrnCat (
 
     DestSize = RtStrLen(Dest);
     Size = RtStrnLen(Src, Len);
-    RtCopyMem(Dest + DestSize, Src, Size * sizeof(CHAR16));
+    RtCopyMemC(Dest + DestSize, Src, Size * sizeof(CHAR16));
     Dest[DestSize + Size] = '\0';
 }
 

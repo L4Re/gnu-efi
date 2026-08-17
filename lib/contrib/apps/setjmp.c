@@ -1,7 +1,6 @@
 
 #include <efi.h>
 #include <efilib.h>
-#include <efisetjmp.h>
 
 EFI_STATUS
 efi_main(
@@ -14,16 +13,16 @@ efi_main(
 
 	InitializeLib(image_handle, systab);
 	rc = setjmp(env);
-	Print(L"setjmp() = %d\n", rc);
+	Print(u"setjmp() = %d\n", rc);
 
 	if (rc == 3) {
-		Print(L"3 worked\n");
+		Print(u"3 worked\n");
 		longjmp(env, 0);
 		return 0;
 	}
 
 	if (rc == 1) {
-		Print(L"0 got to be one yay\n");
+		Print(u"0 got to be one yay\n");
 		return 0;
 	}
 

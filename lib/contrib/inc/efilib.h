@@ -23,6 +23,7 @@ Revision History
 extern "C" {
 #endif
 
+#include "eficompiler.h"
 #include "efidebug.h"
 #include "efipart.h"
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
@@ -42,8 +43,10 @@ extern "C" {
 #elif defined (__loongarch64)
 #include "loongarch64/efilibplat.h"
 #endif
+#include "legacy/efilib.h"
 #include "efilink.h"
 #include "efirtlib.h"
+#include "efisetjmp.h"
 #include "efistdarg.h"
 #include "pci22.h"
 #include "libsmbios.h"
@@ -58,6 +61,10 @@ extern EFI_BOOT_SERVICES        *BS;
 #define gBS                      BS
 extern EFI_RUNTIME_SERVICES     *RT;
 #define gRT                      RT
+
+extern EFI_GUID gZeroGuid;
+#define EFI_ZERO_GUID {0x0, 0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}}
+#define NullGuid gZeroGuid
 
 extern EFI_GUID gEfiDevicePathProtocolGuid;
 #define DevicePathProtocol gEfiDevicePathProtocolGuid
@@ -89,10 +96,16 @@ extern EFI_GUID gEfiDiskIoProtocolGuid;
 #define DiskIoProtocol gEfiDiskIoProtocolGuid
 extern EFI_GUID gEfiDiskIo2ProtocolGuid;
 #define DiskIo2Protocol gEfiDiskIo2ProtocolGuid
+extern EFI_GUID gEfiDxeServicesTableGuid;
+#define DxeServicesTable gEfiDxeServicesTableGuid
 extern EFI_GUID gEfiSimpleFileSystemProtocolGuid;
 #define FileSystemProtocol gEfiSimpleFileSystemProtocolGuid
+extern EFI_GUID gEfiLoadedImageDevicePathProtocolGuid;
+#define LoadedImageDevicePathProtocol gEfiLoadedImageDevicePathProtocolGuid
 extern EFI_GUID gEfiLoadFileProtocolGuid;
 #define LoadFileProtocol gEfiLoadFileProtocolGuid
+extern EFI_GUID gEfiLoadFile2ProtocolGuid;
+#define LoadFile2Protocol gEfiLoadFile2ProtocolGuid
 extern EFI_GUID gEfiDeviceIoProtocolGuid;
 #define DeviceIoProtocol gEfiDeviceIoProtocolGuid
 extern EFI_GUID VariableStoreProtocol;
@@ -135,6 +148,9 @@ extern EFI_GUID gEfiDriverFamilyOverrideProtocolGuid;
 #define DriverFamilyOverrideProtocol gEfiDriverFamilyOverrideProtocolGuid
 extern EFI_GUID gEfiEbcProtocolGuid;
 
+extern EFI_GUID gEfiMpServicesProtocolGuid;
+#define MpServicesProtocol gEfiMpServicesProtocolGuid
+
 extern EFI_GUID gEfiGlobalVariableGuid;
 #define EfiGlobalVariable gEfiGlobalVariableGuid
 extern EFI_GUID gEfiFileInfoGuid;
@@ -150,7 +166,6 @@ extern EFI_GUID gEfiVT100Guid;
 extern EFI_GUID gEfiVT100PlusGuid;
 extern EFI_GUID gEfiVTUTF8Guid;
 
-extern EFI_GUID NullGuid;
 extern EFI_GUID UnknownDevice;
 
 extern EFI_GUID EfiPartTypeSystemPartitionGuid;
@@ -158,8 +173,10 @@ extern EFI_GUID EfiPartTypeLegacyMbrGuid;
 
 extern EFI_GUID MpsTableGuid;
 extern EFI_GUID AcpiTableGuid;
-extern EFI_GUID SMBIOSTableGuid;
-extern EFI_GUID SMBIOS3TableGuid;
+extern EFI_GUID gEfiSmbiosTableGuid;
+#define SMBIOSTableGuid gEfiSmbiosTableGuid
+extern EFI_GUID gEfiSmbios3TableGuid;
+#define SMBIOS3TableGuid gEfiSmbios3TableGuid
 extern EFI_GUID SalSystemTableGuid;
 extern EFI_GUID EfiDtbTableGuid;
 
@@ -180,21 +197,21 @@ extern EFI_GUID ShellDynamicCommandProtocolGuid;
 //
 #define LOAD_OPTION_ACTIVE      0x00000001
 
-#define VarLanguageCodes       L"LangCodes"
-#define VarLanguage            L"Lang"
-#define VarTimeout             L"Timeout"
-#define VarConsoleInp          L"ConIn"
-#define VarConsoleOut          L"ConOut"
-#define VarErrorOut            L"ErrOut"
-#define VarBootOption          L"Boot%04x"
-#define VarBootOrder           L"BootOrder"
-#define VarBootNext            L"BootNext"
-#define VarBootCurrent         L"BootCurrent"
-#define VarDriverOption        L"Driver%04x"
-#define VarDriverOrder         L"DriverOrder"
-#define VarConsoleInpDev       L"ConInDev"
-#define VarConsoleOutDev       L"ConOutDev"
-#define VarErrorOutDev         L"ErrOutDev"
+#define VarLanguageCodes       u"LangCodes"
+#define VarLanguage            u"Lang"
+#define VarTimeout             u"Timeout"
+#define VarConsoleInp          u"ConIn"
+#define VarConsoleOut          u"ConOut"
+#define VarErrorOut            u"ErrOut"
+#define VarBootOption          u"Boot%04x"
+#define VarBootOrder           u"BootOrder"
+#define VarBootNext            u"BootNext"
+#define VarBootCurrent         u"BootCurrent"
+#define VarDriverOption        u"Driver%04x"
+#define VarDriverOrder         u"DriverOrder"
+#define VarConsoleInpDev       u"ConInDev"
+#define VarConsoleOutDev       u"ConOutDev"
+#define VarErrorOutDev         u"ErrOutDev"
 
 #define LanguageCodeEnglish    "eng"
 
@@ -209,12 +226,10 @@ extern EFI_DEVICE_PATH EndInstanceDevicePath[];
 extern EFI_MEMORY_TYPE PoolAllocationType;
 
 //
-// STATIC - Name is internal to the module
 // INTERNAL - Name is internal to the component (i.e., directory)
 // BOOTSERVCE - Name of a boot service function
 //
 
-#define STATIC
 #define INTERNAL
 #define BOOTSERVICE
 
@@ -295,9 +310,16 @@ SetMem (
     );
 
 VOID EFIAPI
-CopyMem (
+CopyMem_1 (
     IN VOID     *Dest,
     IN VOID     *Src,
+    IN UINTN    len
+    );
+
+VOID EFIAPI
+CopyMemC (
+    IN VOID     *Dest,
+    IN CONST VOID     *Src,
     IN UINTN    len
     );
 
@@ -398,22 +420,29 @@ StrDuplicate (
     );
 
 UINTN
-strlena (
+AsciiStrLen (
     IN CONST CHAR8    *s1
     );
 
 UINTN
-strcmpa (
+AsciiStrCmp (
     IN CONST CHAR8    *s1,
     IN CONST CHAR8    *s2
     );
 
 UINTN
-strncmpa (
+AsciiStrnCmp (
     IN CONST CHAR8    *s1,
     IN CONST CHAR8    *s2,
-    IN UINTN    len
+    IN UINTN          len
     );
+
+//
+// For compatibility with previous gnu-efi versions
+//
+#define strlena AsciiStrLen
+#define strcmpa AsciiStrCmp
+#define strncmpa AsciiStrnCmp
 
 UINTN
 xtoi (
@@ -479,11 +508,19 @@ ReleaseLock (
     );
 
 
-INTN
-CompareGuid(
-    IN EFI_GUID     *Guid1,
-    IN EFI_GUID     *Guid2
+BOOLEAN
+EFIAPI
+CompareGuid_1 (
+    IN CONST EFI_GUID     *Guid1,
+    IN CONST EFI_GUID     *Guid2
     );
+
+BOOLEAN
+EFIAPI
+IsZeroGuid (
+    IN CONST EFI_GUID     *Guid1
+);
+
 
 VOID *
 AllocatePool (
@@ -496,11 +533,12 @@ AllocateZeroPool (
     );
 
 VOID *
-ReallocatePool (
-    IN VOID                 *OldPool,
-    IN UINTN                OldSize,
-    IN UINTN                NewSize
-    );
+EFIAPI
+ReallocatePool_1 (
+        IN UINTN  OldSize,
+        IN UINTN  NewSize,
+        IN VOID   *OldPool  OPTIONAL
+);
 
 VOID
 FreePool (
@@ -541,6 +579,26 @@ VPrint (
     va_list           args
     );
 
+#if !defined(_MSC_VER)
+UINTN
+EFIAPI
+MS_VPrint (
+    IN CONST CHAR16   *fmt,
+    ms_va_list           args
+    );
+#else
+EFI_INTERNAL
+UINTN
+EFIAPI
+MS_VPrint (
+    IN CONST CHAR16   *fmt,
+    ms_va_list           args
+) {
+   return VPrint(fmt, args);
+}
+#endif
+
+
 UINTN
 UnicodeSPrint (
     OUT CHAR16        *Str,
@@ -548,7 +606,7 @@ UnicodeSPrint (
     IN CONST CHAR16   *fmt,
     ...
     );
-
+    
 UINTN
 UnicodeVSPrint (
     OUT CHAR16        *Str,
@@ -557,11 +615,56 @@ UnicodeVSPrint (
     va_list           args
     );
 
+
+#if !defined(_MSC_VER)
+UINTN
+EFIAPI
+MS_UnicodeVSPrint (
+    OUT CHAR16        *Str,
+    IN UINTN          StrSize,
+    IN CONST CHAR16   *fmt,
+    ms_va_list           args
+    );
+#else
+EFI_INTERNAL
+UINTN
+EFIAPI
+MS_UnicodeVSPrint (
+    OUT CHAR16        *Str,
+    IN UINTN          StrSize,
+    IN CONST CHAR16   *fmt,
+    ms_va_list           args
+) {
+    return UnicodeVSPrint(Str, StrSize, fmt, args);
+}
+#endif
+
+
 CHAR16 *
 VPoolPrint (
     IN CONST CHAR16     *fmt,
     va_list             args
     );
+
+#if !defined(_MSC_VER)
+CHAR16 *
+EFIAPI
+MS_VPoolPrint (
+    IN CONST CHAR16     *fmt,
+    ms_va_list             args
+    );
+#else
+EFI_INTERNAL
+CHAR16 *
+EFIAPI
+MS_VPoolPrint (
+    IN CONST CHAR16     *fmt,
+    ms_va_list             args
+) {
+    return VPoolPrint(fmt, args);
+}
+#endif
+
 
 CHAR16 *
 PoolPrint (
@@ -613,11 +716,28 @@ AsciiPrint (
     );
 
 UINTN
+AsciiSPrint (
+    OUT CHAR8         *Str,
+    IN UINTN          StrSize,
+    IN CONST CHAR8    *fmt,
+    ...
+);
+
+UINTN
 AsciiVSPrint(
     OUT CHAR8         *Str,
     IN  UINTN         StrSize,
     IN  CONST CHAR8   *fmt,
     va_list           args
+);
+
+UINTN
+EFIAPI
+MS_AsciiVSPrint(
+    OUT CHAR8         *Str,
+    IN  UINTN         StrSize,
+    IN  CONST CHAR8   *fmt,
+    ms_va_list           args
 );
 
 //

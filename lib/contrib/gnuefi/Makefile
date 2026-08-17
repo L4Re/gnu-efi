@@ -34,10 +34,8 @@
 #    SUCH DAMAGE.
 #
 
-SRCDIR = .
-
-VPATH = $(SRCDIR)
-TOPDIR = $(SRCDIR)/..
+VPATH ?= .
+SRCDIR = $(VPATH)
 
 include $(SRCDIR)/../Make.defaults
 
@@ -46,23 +44,64 @@ FILES	= reloc_$(ARCH)
 
 OBJS	= $(FILES:%=%.o)
 
+ifneq ($(HAVE_EFI_OBJCOPY),)
+  gnu_efi_default_is_objcopy=true
+else
+  gnu_efi_default_is_objcopy=false
+endif
+# https://uefi.org/specs/UEFI/2.10/03_Boot_Manager.html#uefi-image-types
+ifeq ($(ARCH),x86_64)
+  efi_machine_type_name=x64
+endif
+ifeq ($(ARCH),ia32)
+  efi_machine_type_name=ia32
+endif
+ifeq ($(ARCH),arm)
+  efi_machine_type_name=arm
+endif
+ifeq ($(ARCH),aarch64)
+  efi_machine_type_name=aa64
+endif
+ifeq ($(ARCH),ia64)
+  efi_machine_type_name=ia64
+endif
+ifeq ($(ARCH),riscv64)
+  efi_machine_type_name=riscv64
+endif
+ifeq ($(ARCH),loongarch64)
+  efi_machine_type_name=loongarch64
+endif
+ifeq ($(ARCH),mips64el)
+  efi_machine_type_name=mips64
+endif
+
+ifneq (,$(filter $(ARCH),aarch64 riscv64 ia32))
+CRT0_LOCAL_TARGET = crt0-efi-$(ARCH)-local.o
+endif
+
+LIBS = crt0-efi-$(ARCH).o libgnuefi.a $(CRT0_LOCAL_TARGET)
+TARGETS	= $(LIBS) gnu-efi.pc
+
+all:	$(TARGETS)
+
 # on aarch64, avoid jump tables before all relocations have been processed
-reloc_aarch64.o: CFLAGS += -fno-jump-tables
-
-TARGETS	= crt0-efi-$(ARCH).o libgnuefi.a
-
-all:	$(TARGETS) gnu-efi.pc
+reloc_aarch64.o: EFI_CFLAGS += -fno-jump-tables
 
 libgnuefi.a: $(OBJS)
-	$(AR) $(ARFLAGS) $@ $^
+	@$(ECHO) "  AR       $(notdir $@)"
+	$(HIDE)$(AR) $(ARFLAGS) $@ $^
 
 gnu-efi.pc:
-	sed \
+	@$(ECHO) "  GEN      $(notdir $@)"
+	$(HIDE)sed \
 		-e 's:@PREFIX@:$(PREFIX):g' \
 		-e 's:@EXEC_PREFIX@:$(EXEC_PREFIX):g' \
 		-e 's:@INCLUDEDIR@:$(INCLUDEDIR):g' \
 		-e 's:@LIBDIR@:$(LIBDIR):g' \
 		-e 's:@VERSION@:$(VERSION):g' \
+		-e 's:@efi_machine_type_name@:$(efi_machine_type_name):g' \
+		-e 's:@gnu_efi_arch@:$(ARCH):g' \
+		-e 's:@gnu_efi_default_is_objcopy@:$(gnu_efi_default_is_objcopy):g' \
 	$(SRCDIR)/gnu-efi.pc.in > gnu-efi.pc
 
 
@@ -71,17 +110,17 @@ clean:
 
 install:
 	mkdir -p $(INSTALLROOT)$(LIBDIR)
-	$(INSTALL) -m 644 $(TARGETS) $(INSTALLROOT)$(LIBDIR)
-ifneq (,$(findstring FreeBSD,$(OS)))
- ifeq ($(ARCH),x86_64)
+	$(INSTALL) -m 644 $(LIBS) $(INSTALLROOT)$(LIBDIR)
+ifneq (,$(filter $(ARCH),x86_64 ia32))
 	$(INSTALL) -m 644 $(SRCDIR)/elf_$(ARCH)_fbsd_efi.lds $(INSTALLROOT)$(LIBDIR)
- else
-	$(INSTALL) -m 644 $(SRCDIR)/elf_$(ARCH)_efi.lds $(INSTALLROOT)$(LIBDIR)
- endif
-else
-	$(INSTALL) -m 644 $(SRCDIR)/elf_$(ARCH)_efi.lds $(INSTALLROOT)$(LIBDIR)
 endif
+ifneq (,$(filter $(ARCH),aarch64 riscv64 ia32))
+	$(INSTALL) -m 644 $(SRCDIR)/elf_$(ARCH)_efi_local.lds $(INSTALLROOT)$(LIBDIR)
+endif
+	$(INSTALL) -m 644 $(SRCDIR)/elf_$(ARCH)_efi.lds $(INSTALLROOT)$(LIBDIR)
 	$(INSTALL) -d $(INSTALLROOT)$(PKGCONFIGDIR)
 	$(INSTALL) -m 644 gnu-efi.pc $(INSTALLROOT)$(PKGCONFIGDIR)
+
+.PHONY: all clean install
 
 include $(SRCDIR)/../Make.rules

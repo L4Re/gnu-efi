@@ -58,21 +58,23 @@ _start:
 	popl %ebx
 	popl %ebx
 	testl %eax,%eax
-	jne .exit
+	jne .L_exit
   
 	call _entry			# call app with "image" and "systab" argument
 
-.exit:	leave
+.L_exit:
+	leave
 	ret
  
  	// hand-craft a dummy .reloc section so EFI knows it's a relocatable executable:
  
  	.data
-dummy:	.4byte	0
+dummy0:	.4byte	0
+dummy1:	.4byte	0
 
 #define IMAGE_REL_ABSOLUTE	0
  	.section .reloc
- 	.4byte	dummy					// Page RVA
+ 	.4byte	dummy1 - dummy0					// Page RVA
 	.4byte	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy

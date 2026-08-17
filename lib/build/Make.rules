@@ -31,7 +31,7 @@ SRC_S_libgnuefi-crt0.p.a = gnuefi/crt0-efi-$(EFI_ARCH).S
 
 FILES_C = boxdraw smbios console crc data debug dpath \
           entry error event exit guid hand hw init lock  \
-          misc pause print sread str cmdline \
+          misc pause print va_print sread str cmdline \
           runtime/rtlock runtime/efirtlib runtime/rtstr runtime/vm runtime/rtdata \
           $(EFI_ARCH)/initplat $(EFI_ARCH)/math
 FILES_S = ctors $(EFI_ARCH)/setjmp

@@ -34,21 +34,28 @@
 #    SUCH DAMAGE.
 #
 
-export VERSION = 3.0.18
+export VERSION = 4.0.3
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-SRCDIR = $(dir $(MKFILE_PATH))
+VPATH ?= $(dir $(MKFILE_PATH))
 
-VPATH = $(SRCDIR)
+SRCDIR = $(VPATH)
 
 include $(SRCDIR)/Make.defaults
 
-SUBDIRS = lib gnuefi inc apps
+SUBDIRS    = lib inc apps
+ifeq ($(IS_MINGW32),)
+  SUBDIRS += gnuefi
+endif
 
 all:	check_gcc $(SUBDIRS)
 
+ifeq ($(IS_MINGW32),)
 gnuefi: lib
 apps:	gnuefi
+else
+apps:	lib
+endif
 
 mkvars:
 	@echo AR=$(AR)
@@ -58,7 +65,6 @@ mkvars:
 	@echo ASFLAGS=$(ASFLAGS)
 	@echo CC=$(CC)
 	@echo CFLAGS=$(CFLAGS)
-	@echo CPPFLAGS=$(CPPFLAGS)
 	@echo GCCMINOR=$(GCCMINOR)
 	@echo GCCNEWENOUGH=$(GCCNEWENOUGH)
 	@echo GCCVERSION=$(GCCVERSION)
@@ -79,22 +85,21 @@ mkvars:
 
 $(SUBDIRS):
 	mkdir -p $(OBJDIR)/$@
-	$(MAKE) -C $(OBJDIR)/$@ -f $(SRCDIR)/$@/Makefile SRCDIR=$(SRCDIR)/$@ ARCH=$(ARCH)
+	$(MAKE) -C $(OBJDIR)/$@ -f $(SRCDIR)/$@/Makefile VPATH=$(SRCDIR)/$@
 
 clean:
 	@rm -vrf *~
 	@set -e ; for d in $(SUBDIRS); do \
 		if [ -d $(OBJDIR)/$$d ]; then \
-			$(MAKE) -C $(OBJDIR)/$$d -f $(SRCDIR)/$$d/Makefile SRCDIR=$(SRCDIR)/$$d clean; \
+			$(MAKE) -C $(OBJDIR)/$$d -f $(SRCDIR)/$$d/Makefile VPATH=$(SRCDIR)/$$d clean; \
 		fi; \
 	done
 
 install:
 	@set -e ; for d in $(SUBDIRS); do \
 		mkdir -p $(OBJDIR)/$$d; \
-		$(MAKE) -C $(OBJDIR)/$$d -f $(SRCDIR)/$$d/Makefile SRCDIR=$(SRCDIR)/$$d install; done
+		$(MAKE) -C $(OBJDIR)/$$d -f $(SRCDIR)/$$d/Makefile VPATH=$(SRCDIR)/$$d install; done
 
-.PHONY:	$(SUBDIRS) clean depend
 
 #
 # on both platforms you must use gcc 3.0 or higher 
@@ -128,4 +133,7 @@ archive: tag
 	@dir=$$PWD; cd /tmp; tar -c --bzip2 -f $$dir/gnu-efi-$(VERSION).tar.bz2 gnu-efi-$(VERSION)
 	@rm -rf /tmp/gnu-efi-$(VERSION)
 	@echo "The archive is in gnu-efi-$(VERSION).tar.bz2"
+
+.PHONY:	all $(SUBDIRS) clean depend install tag archive mkvars check_gcc test-archive
+
 

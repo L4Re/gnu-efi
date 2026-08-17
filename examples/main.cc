@@ -1,4 +1,3 @@
-#include <stdint.h>
 extern "C"
 {
 #include <efi.h>
@@ -13,8 +12,7 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 
   InitializeLib(image, systab);
 
-  CHAR16 s[] = L"Hello World from L4\n";
-  Print(s);
+  Print(u"Hello World from L4Re\n");
 
   return efi_status;
 }

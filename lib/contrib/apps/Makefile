@@ -34,52 +34,89 @@
 #    SUCH DAMAGE.
 #
 
-SRCDIR = .
+VPATH ?= .
+SRCDIR = $(VPATH)
 
-VPATH = $(SRCDIR)
-TOPDIR = $(SRCDIR)/..
 
 include $(SRCDIR)/../Make.defaults
 
 LINUX_HEADERS	= /usr/src/sys/build
 APPSDIR		= $(LIBDIR)/gnuefi/apps
-CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
-CRTOBJS		= $(TOPDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
-
-LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_efi.lds
-ifneq (,$(findstring FreeBSD,$(OS)))
-LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_fbsd_efi.lds
-endif
-
-LDFLAGS		+= -shared -Bsymbolic -L$(TOPDIR)/$(ARCH)/lib -L$(TOPDIR)/$(ARCH)/gnuefi $(CRTOBJS)
-
-LOADLIBES	+= -lefi -lgnuefi
-LOADLIBES	+= $(LIBGCC)
-LOADLIBES	+= -T $(LDSCRIPT)
-
-TARGET_APPS = t.efi t2.efi t3.efi t4.efi t5.efi t6.efi \
-	      printenv.efi t7.efi t8.efi tcc.efi modelist.efi \
-	      route80h.efi drv0_use.efi AllocPages.efi exit.efi \
-	      FreePages.efi setjmp.efi debughook.efi debughook.efi.debug \
-	      bltgrid.efi lfbgrid.efi setdbg.efi unsetdbg.efi \
-	      ctors_test.efi ctors_dtors_priority_test.efi
-TARGET_BSDRIVERS = drv0.efi
-TARGET_RTDRIVERS =
+EFI_CFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
 
 ifneq ($(HAVE_EFI_OBJCOPY),)
+ifeq ($(SYSTEM_HAS_EFI_OBJCOPY),0)
+CRT0_LOCAL = -local
+LDS_LOCAL = _local
+endif
+endif
 
-FORMAT		:= --target efi-app-$(ARCH)
-$(TARGET_BSDRIVERS): FORMAT=--target efi-bsdrv-$(ARCH)
-$(TARGET_RTDRIVERS): FORMAT=--target efi-rtdrv-$(ARCH)
+ifeq ($(IS_MINGW32),)
+# The CRT0 libs are only needed for non MinGW platforms
+CRT0_LIBS	= -lgnuefi
+endif
 
+ifneq ($(CRT0_LIBS),)
+CRTOBJS		= $(TOPDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH)$(CRT0_LOCAL).o
+
+LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_efi$(LDS_LOCAL).lds
+ifeq ($(USING_FREEBSD),1)
+LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_fbsd_efi.lds
+endif
+EFI_LDFLAGS		+= -L$(TOPDIR)/$(ARCH)/lib -L$(TOPDIR)/$(ARCH)/gnuefi $(CRTOBJS)
+LOADLIBES	+= -T $(LDSCRIPT)
+endif
+
+EFI_LDFLAGS		+= -pie -Bsymbolic -L$(TOPDIR)/$(ARCH)/lib
+
+ifeq ($(IS_MINGW32),)
+EFI_CFLAGS      += -fPIE
+EFI_LDFLAGS     += --no-dynamic-linker
+endif
+
+LOADLIBES	+= -lefi $(CRT0_LIBS)
+LOADLIBES	+= $(LIBGCC)
+
+TARGET_APPS  = t.efi t2.efi t3.efi t4.efi t5.efi t6.efi t7.efi t8.efi \
+               tcc.efi printenv.efi modelist.efi route80h.efi drv0_use.efi \
+               AllocPages.efi exit.efi FreePages.efi bltgrid.efi \
+               lfbgrid.efi setdbg.efi unsetdbg.efi old_ABI.efi check_print.efi
+ifeq ($(IS_MINGW32),)
+TARGET_APPS += setjmp.efi debughook.efi debughook.efi.debug \
+               ctors_test.efi ctors_dtors_priority_test.efi
+endif
+
+ifeq ($(USING_FREEBSD),0)
+TARGET_BSDRIVERS = drv0.efi
 else
+TARGET_BSDRIVERS =
+endif
+TARGET_RTDRIVERS =
 
 SUBSYSTEM	:= 0xa
 $(TARGET_BSDRIVERS): SUBSYSTEM = 0xb
 $(TARGET_RTDRIVERS): SUBSYSTEM = 0xc
 
+ifeq ($(SYSTEM_HAS_EFI_OBJCOPY),1)
+
+FORMAT		:= -O efi-app-$(ARCH)
+$(TARGET_BSDRIVERS): FORMAT=-O efi-bsdrv-$(ARCH)
+$(TARGET_RTDRIVERS): FORMAT=-O efi-rtdrv-$(ARCH)
+
+ifneq ($(IS_MINGW32),)
+EFI_LDFLAGS += -s -Wl,-dll
+SUBSYSTEM_DEFINES = -Wl,--subsystem,$(SUBSYSTEM)
+ifeq ($(ARCH),ia32)
+EFI_LDFLAGS     += -e _efi_main
+else
+EFI_LDFLAGS     += -e efi_main
+endif
+endif
+
+else
+
 FORMAT		:= -O binary
-LDFLAGS		+= --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
+SUBSYSTEM_DEFINES = --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
 
 endif
 
@@ -96,6 +133,6 @@ install:
 	mkdir -p $(INSTALLROOT)$(APPSDIR)
 	$(INSTALL) -m 644 $(TARGETS) $(INSTALLROOT)$(APPSDIR)
 
-.PHONY: install
+.PHONY: all clean install
 
 include $(SRCDIR)/../Make.rules

@@ -3,7 +3,24 @@
 
 extern EFI_GUID GraphicsOutputProtocol;
 
+#ifdef _MSC_VER
+#if defined(_M_X64) || defined (_M_ARM64)
+#define __SIZEOF_POINTER__ 8
+#elif defined(_M_IX86) || defined(_M_ARM)
+#define __SIZEOF_POINTER__ 4
+#else
+#error "Unknown arch"
+#endif
+#endif
+
+#ifdef __GNUC__
 #define be32_to_cpu(x) __builtin_bswap32(x)
+#else
+static inline UINT32 be32_to_cpu(const UINT32 x) {
+	return ((x >> 24) & 0x000000FFUL) | ((x << 24) & 0xFF000000UL) |
+			((x >> 8) & 0x0000FF00UL) | ((x << 8) & 0x00FF0000UL);
+}
+#endif
 
 static void
 fill_boxes(UINT32 *PixelBuffer, UINT32 Width, UINT32 Height, UINT32 Pitch,
@@ -28,7 +45,7 @@ fill_boxes(UINT32 *PixelBuffer, UINT32 Width, UINT32 Height, UINT32 Pitch,
 	case PixelBltOnly:
 		return;
 	default:
-		Print(L"Invalid pixel format\n");
+		Print(u"Invalid pixel format\n");
 		return;
 	}
 
@@ -62,7 +79,7 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 	if (gop->Mode) {
 		imax = gop->Mode->MaxMode;
 	} else {
-		Print(L"gop->Mode is NULL\n");
+		Print(u"gop->Mode is NULL\n");
 		return;
 	}
 
@@ -71,8 +88,8 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 		rc = uefi_call_wrapper(gop->QueryMode, 4, gop, i, &SizeOfInfo,
 					&info);
 		if (rc == EFI_NOT_STARTED) {
-			Print(L"gop->QueryMode() returned %r\n", rc);
-			Print(L"Trying to start GOP with SetMode().\n");
+			Print(u"gop->QueryMode() returned %r\n", rc);
+			Print(u"Trying to start GOP with SetMode().\n");
 			rc = uefi_call_wrapper(gop->SetMode, 2, gop,
 				gop->Mode ? gop->Mode->Mode : 0);
 			rc = uefi_call_wrapper(gop->QueryMode, 4, gop, i,
@@ -80,7 +97,7 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 		}
 
 		if (EFI_ERROR(rc)) {
-			Print(L"%d: Bad response from QueryMode: %r (%d)\n",
+			Print(u"%d: Bad response from QueryMode: %r (%d)\n",
 			      i, rc, rc);
 			continue;
 		}
@@ -90,19 +107,19 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 
 		NumPixels = (UINTN)info->VerticalResolution
                             * (UINTN)info->PixelsPerScanLine;
-		BufferSize = NumPixels * sizeof(UINT32);
+		BufferSize = (UINT32)(NumPixels * sizeof(UINT32));
 		if (BufferSize == gop->Mode->FrameBufferSize) {
 			CopySize = BufferSize;
 		} else {
 			CopySize = BufferSize < gop->Mode->FrameBufferSize ?
-				BufferSize : gop->Mode->FrameBufferSize;
-			Print(L"height * pitch * pixelsize = %lu buf fb size is %lu; using %lu\n",
+				BufferSize : (UINT32)gop->Mode->FrameBufferSize;
+			Print(u"height * pitch * pixelsize = %lu buf fb size is %lu; using %lu\n",
 			      BufferSize, gop->Mode->FrameBufferSize, CopySize);
 		}
 
 		PixelBuffer = AllocatePool(BufferSize);
 		if (!PixelBuffer) {
-			Print(L"Allocation of 0x%08lx bytes failed.\n",
+			Print(u"Allocation of 0x%08lx bytes failed.\n",
 			      sizeof(UINT32) * NumPixels);
 			return;
 		}
@@ -112,7 +129,7 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 			   info->PixelFormat, info->PixelInformation);
 
 		if (info->PixelFormat == PixelBltOnly) {
-			Print(L"No linear framebuffer on this device.\n");
+			Print(u"No linear framebuffer on this device.\n");
 			return;
 		}
 #if __SIZEOF_POINTER__ == 8
@@ -126,7 +143,7 @@ draw_boxes(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
 		CopyMem((VOID *)FrameBufferAddr, PixelBuffer, CopySize);
 		return;
 	}
-	Print(L"Never found the active video mode?\n");
+	Print(u"Never found the active video mode?\n");
 }
 
 static EFI_STATUS
@@ -138,7 +155,7 @@ SetWatchdog(UINTN seconds)
 	if (EFI_ERROR(rc)) {
 		CHAR16 Buffer[64];
 		StatusToString(Buffer, rc);
-		Print(L"Bad response from QueryMode: %s (%d)\n", Buffer, rc);
+		Print(u"Bad response from QueryMode: %s (%d)\n", Buffer, rc);
 	}
 	return rc;
 }
@@ -155,12 +172,12 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *systab)
 
 	rc = LibLocateProtocol(&GraphicsOutputProtocol, (void **)&gop);
 	if (EFI_ERROR(rc)) {
-		Print(L"Could not locate GOP: %r\n", rc);
+		Print(u"Could not locate GOP: %r\n", rc);
 		return rc;
 	}
 
 	if (!gop) {
-		Print(L"LocateProtocol(GOP, &gop) returned %r but GOP is NULL\n", rc);
+		Print(u"LocateProtocol(GOP, &gop) returned %r but GOP is NULL\n", rc);
 		return EFI_UNSUPPORTED;
 	}
 

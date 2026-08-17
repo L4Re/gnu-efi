@@ -1,7 +1,7 @@
 /*
  * crt0-efi-aarch64.S - PE/COFF header for AArch64 EFI applications
  *
- * Copright (C) 2014 Linaro Ltd. <ard.biesheuvel@linaro.org>
+ * Copyright (C) 2014 Linaro Ltd. <ard.biesheuvel@linaro.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,23 +32,24 @@ _start:
 	adrp		x1, _DYNAMIC
 	add		x1, x1, #:lo12:_DYNAMIC
 	bl		_relocate
-	cbnz		x0, 0f
+	cbnz		x0, .L_exit
 
 	ldp		x0, x1, [sp, #16]
 	bl		_entry
 
-0:	ldp		x29, x30, [sp], #32
+.L_exit:
+	ldp		x29, x30, [sp], #32
 	ret
 
 	// hand-craft a dummy .reloc section so EFI knows it's a relocatable executable:
- 
+
  	.data
-dummy:	.4byte	0
+dummy0:	.4byte	0
+dummy1:	.4byte	0
 
 #define IMAGE_REL_ABSOLUTE	0
- 	.section .reloc, "a"
-label1:
-	.4byte	dummy-label1				// Page RVA
+ 	.section .reloc, "a", %progbits
+	.4byte	dummy1 - dummy0				// Page RVA
 	.4byte	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
 	.2byte	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy

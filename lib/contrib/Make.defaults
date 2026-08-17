@@ -34,7 +34,7 @@
 #    SUCH DAMAGE.
 #
 
-TOPDIR ?= $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
+export TOPDIR ?= $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 
 #
 # Variables below overridable from command-line:
@@ -50,6 +50,14 @@ ifeq ($(origin INSTALLROOT),undefined)
 INSTALLROOT = $(DESTDIR)
 endif
 
+EFI_CFLAGS := 
+USER_CFLAGS := $(CFLAGS)
+override CFLAGS = $(EFI_CFLAGS) $(USER_CFLAGS)
+EFI_LDFLAGS := 
+USER_LDFLAGS := $(LDFLAGS)
+override LDFLAGS = $(EFI_LDFLAGS) $(USER_LDFLAGS)
+
+
 empty :=
 space := $(empty) $(empty)
 stripped = $(subst $(space),/,$(strip $(subst /,$(space),$(1))))
@@ -60,9 +68,9 @@ override INSTALLROOT:=$(if $(call is_absolute,$(INSTALLROOT)),,$(TOPDIR)/)$(INST
 
 PREFIX       := /usr/local
 EXEC_PREFIX  := $(PREFIX)
-LIBDIR 	 := $(EXEC_PREFIX)/lib
+LIBDIR       := $(EXEC_PREFIX)/lib
 INCLUDEDIR   := $(PREFIX)/include
-INSTALL	 := install
+INSTALL      := install
 
 # Compilation tools
 HOSTCC       := $(prefix)gcc
@@ -73,35 +81,72 @@ AR           := $(prefix)$(CROSS_COMPILE)ar
 RANLIB       := $(prefix)$(CROSS_COMPILE)ranlib
 OBJCOPY      := $(prefix)$(CROSS_COMPILE)objcopy
 
+# Set verbose or nonverbose output similarly to automake's silent rules.
+# Default is nonverbose, but, just like with automake, it can be disabled
+# with: 'make V=1'
+ifneq ($(V),1)
+  HIDE=@
+  ECHO=echo
+else
+  HIDE=
+  ECHO=true
+endif
 
 # Host/target identification
-OS           := $(shell uname -s)
-HOSTARCH     ?= $(shell $(HOSTCC) -dumpmachine | cut -f1 -d- | sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
-# L4 addition
-ifeq (0,1)
-ARCH         ?= $(shell $(HOSTCC) -dumpmachine | cut -f1 -d- | sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
+OS            := $(shell uname -s)
+USING_APPLE   ?= $(shell echo $(OS) | grep -q 'Darwin' && echo 1 || echo 0)
+USING_FREEBSD ?= $(shell echo $(OS) | grep -q 'FreeBSD' && echo 1 || echo 0)
 
-# Get ARCH from the compiler if cross compiling 
-ifneq ($(CROSS_COMPILE),)
-  override ARCH := $(shell $(CC) -dumpmachine | cut -f1 -d-| sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
+# FreeBSD uses clang with no gcc symlink
+ifeq ($(USING_FREEBSD),1)
+override HOSTCC       := $(prefix)clang
 endif
-else # L4
-  ARCH         ?= $(shell $(CC) -dumpmachine | cut -f1 -d- | sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
-endif # L4
+
+HOSTARCH      := $(shell $(HOSTCC) -dumpmachine | cut -f1 -d- | sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
+ifeq ($(origin ARCH),undefined)
+ARCH          := $(shell $(CC) -dumpmachine | cut -f1 -d- | sed -e s,i[3456789]86,ia32, -e 's,armv[67].*,arm,' )
+endif
 
 # FreeBSD (and possibly others) reports amd64 instead of x86_64
 ifeq ($(ARCH),amd64)
   override ARCH := x86_64
 endif
 
-GCCVERSION   := $(shell $(CC) -dumpversion | cut -f1 -d.)
-GCCMINOR     := $(shell $(CC) -dumpversion | cut -f2 -d.)
-USING_CLANG  := $(shell $(CC) -v 2>&1 | grep -q 'clang version' && echo clang)
+# Allow UEFI shorthands to be specified for the arch
+ifeq ($(ARCH),x64)
+  override ARCH := x86_64
+endif
+ifeq ($(ARCH),mips64)
+  override ARCH := mips64el
+endif
+ifeq ($(ARCH),aa64)
+  override ARCH := aarch64
+endif
+
+# Allow 32 on 64
+ifeq ($(HOSTARCH),x86_64)
+ifeq ($(ARCH),ia32)
+	override ARCH := ia32
+endif
+endif
+
+GCCVERSION    := $(shell $(CC) -dumpversion | sed -e 's/-win32/.0/' | cut -f1 -d.)
+GCCMINOR      := $(shell $(CC) -dumpversion | sed -e 's/-win32/.0/' | cut -f2 -d.)
+USING_CLANG   := $(shell $(CC) -v 2>&1 | grep -q 'clang version' && echo clang || echo 0)
+NO_GLIBC      ?= 0
 
 # Rely on GCC MS ABI support?
 GCCNEWENOUGH := $(shell ( [ $(GCCVERSION) -gt "4" ]           \
                           || ( [ $(GCCVERSION) -eq "4" ]      \
                           && [ $(GCCMINOR) -ge "7" ] ) ) \
+                          && echo 1)
+
+PART_ONE = $(shell echo "$(1)" | cut -f1 -d.)
+PART_TWO = $(shell echo "$(1)" | cut -f2 -d.)
+
+IS_NEW_ENOUGH = $(shell ( [ $(call PART_ONE,$(1)) -gt "$(2)" ] \
+                          || ( [ $(call PART_ONE,$(1)) -eq "$(2)" ] \
+                          && [ $(call PART_TWO,$(1)) -ge "$(3)" ] ) ) \
                           && echo 1)
 
 #
@@ -114,33 +159,33 @@ OBJDIR       := $(TOPDIR)/$(ARCH)
 #
 
 # Arch-specific compilation flags
-CPPFLAGS += -DCONFIG_$(ARCH)
+EFI_CFLAGS += -DCONFIG_$(ARCH)
 
-CFLAGS += -Wno-error=pragmas
+EFI_CFLAGS += -Wno-error=pragmas
 
 ifeq ($(ARCH),ia64)
-  CFLAGS += -mfixed-range=f32-f127
+  EFI_CFLAGS += -mfixed-range=f32-f127
 endif
 
 ifeq ($(ARCH),ia32)
-  CFLAGS += -mno-mmx -mno-sse
+  EFI_CFLAGS += -mno-mmx -mno-sse
   ifeq ($(HOSTARCH),x86_64)
     ARCH3264 = -m32
   endif
 endif
 
 # Set ISO C mode
-CPPFLAGS += -std=c11
+EFI_CFLAGS += -std=c11
 
 ifeq ($(ARCH),x86_64)
   ifeq ($(GCCNEWENOUGH),1)
-    CPPFLAGS += -DGNU_EFI_USE_MS_ABI
+    EFI_CFLAGS += -DGNU_EFI_USE_MS_ABI
     ifneq ($(USING_CLANG),clang)
-      CPPFLAGS +=  -maccumulate-outgoing-args
+      EFI_CFLAGS +=  -maccumulate-outgoing-args
     endif
   endif
 
-  CFLAGS += -mno-red-zone
+  EFI_CFLAGS += -mno-red-zone
   ifeq ($(HOSTARCH),ia32)
     ARCH3264 = -m64
   endif
@@ -150,12 +195,12 @@ ifneq (,$(filter $(ARCH),ia32 x86_64))
   # Disable AVX, if the compiler supports that.
   CC_CAN_DISABLE_AVX=$(shell $(CC) -Werror -c -o /dev/null -xc -mno-avx - </dev/null >/dev/null 2>&1 && echo 1)
   ifeq ($(CC_CAN_DISABLE_AVX), 1)
-    CFLAGS += -mno-avx
+    EFI_CFLAGS += -mno-avx
   endif
 endif
 
 ifeq ($(ARCH),mips64el)
-  CFLAGS += -march=mips64r2
+  EFI_CFLAGS += -march=mips64r2
   ARCH3264 = -mabi=64
 endif
 
@@ -163,49 +208,113 @@ endif
 # Set HAVE_EFI_OBJCOPY if objcopy understands --target efi-[app|bsdrv|rtdrv],
 # otherwise we need to compose the PE/COFF header using the assembler
 #
+
+OBJCOPY_VERSION := $(shell $(OBJCOPY) --version | head -n 1 | awk '{print $$(NF)}')
+
 ifneq ($(ARCH),arm)
 ifneq ($(ARCH),mips64el)
-ifneq ($(ARCH),riscv64)
 export HAVE_EFI_OBJCOPY=y
 endif
 endif
+
+ifeq ($(ARCH),riscv64)
+ifneq ($(call IS_NEW_ENOUGH,$(OBJCOPY_VERSION),2,42),1)
+export SYSTEM_HAS_EFI_OBJCOPY ?= 0
+endif
+endif
+
+ifeq ($(ARCH),aarch64)
+ifneq ($(call IS_NEW_ENOUGH,$(OBJCOPY_VERSION),2,38),1)
+export SYSTEM_HAS_EFI_OBJCOPY ?= 0
+endif
+endif
+
+ifeq ($(ARCH),ia32)
+ifeq ($(USING_APPLE),1)
+export SYSTEM_HAS_EFI_OBJCOPY ?= 0
+endif
+endif
+
+ifeq ($(HAVE_EFI_OBJCOPY),y)
+export SYSTEM_HAS_EFI_OBJCOPY ?= 1
+else
+export SYSTEM_HAS_EFI_OBJCOPY ?= 0
+endif
+
+
+ifeq ($(USING_APPLE),1)
+EFI_CFLAGS += -D__GNU_EFI_NO_GLIBC
+endif
+
+ifeq ($(NO_GLIBC),1)
+EFI_CFLAGS += -D__GNU_EFI_NO_GLIBC
 endif
 
 ifeq ($(ARCH),arm)
-CFLAGS += -marm
+EFI_CFLAGS += -marm
 endif
 
 ifneq (,$(filter $(ARCH),aarch64 arm loongarch64))
-LDFLAGS += -z common-page-size=4096
-LDFLAGS += -z max-page-size=4096
+EFI_LDFLAGS += -z common-page-size=4096
+EFI_LDFLAGS += -z max-page-size=4096
 endif
 
 # Generic compilation flags
 INCDIR  += -I$(SRCDIR) -I$(TOPDIR)/inc -I$(TOPDIR)/inc/$(ARCH) \
            -I$(TOPDIR)/inc/protocol
 
-# Only enable -fPIE for non MinGW compilers (unneeded on MinGW)
+# Only enable -fPIC for non MinGW compilers (unneeded on MinGW)
 GCCMACHINE := $(shell $(CC) -dumpmachine)
-ifneq (mingw32,$(findstring mingw32, $(GCCMACHINE)))
-  CFLAGS += -fPIE
+IS_MINGW32 := $(findstring mingw32, $(GCCMACHINE))
+ifeq ($(IS_MINGW32),)
+  EFI_CFLAGS += -fPIC
 endif
 
-ifeq (FreeBSD, $(findstring FreeBSD, $(OS)))
-CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Werror \
-           -funsigned-char -fshort-wchar -fno-strict-aliasing \
+ifeq ($(USING_FREEBSD),1)
+EFI_CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Wstrict-prototypes -Werror \
+           -fno-strict-aliasing \
            -ffreestanding -fno-stack-protector
 else
-CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Wno-pointer-sign -Werror \
-           -funsigned-char -fshort-wchar -fno-strict-aliasing \
-	   -ffreestanding -fno-stack-protector -fno-stack-check \
-           $(if $(findstring gcc,$(CC)),-fno-merge-all-constants,)
+EFI_CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Wstrict-prototypes -Werror \
+           -fno-strict-aliasing \
+           -ffreestanding -fno-stack-protector \
+           $(if $(findstring 0,$(USING_CLANG)),-fno-merge-all-constants,)
 endif
 
+# Force DWARF 4 on LLVM
+# Otherwise readelf becomes very unhappy
+ifeq ($(USING_CLANG),clang)
+EFI_CFLAGS += -gdwarf-4
+endif
+
+# Force hard float (for library mismatch)
+ifeq ($(ARCH),arm)
+ifeq ($(USING_APPLE),1)
+EFI_CFLAGS += -mfloat-abi=hard -mfpu=vfpv2
+endif
+endif
+
+ifeq ($(V),1)
 ARFLAGS := rDv
+else
+ARFLAGS := rD
+endif
 ASFLAGS += $(ARCH3264)
-LDFLAGS	+= -nostdlib --warn-common --no-undefined --fatal-warnings \
-	   --build-id=sha1 -z nocombreloc
+EFI_LDFLAGS += -nostdlib 
+ifeq ($(IS_MINGW32),)
+  EFI_LDFLAGS += --warn-common --no-undefined --fatal-warnings \
+             --build-id=sha1
+  ifeq ($(USING_APPLE),0)
+  EFI_LDFLAGS += -z norelro -z nocombreloc
+  endif
+else
+  EFI_LDFLAGS += -Wl,--warn-common -Wl,--no-undefined -Wl,--fatal-warnings \
+             -Wl,--build-id=sha1
+endif
 
 ifneq ($(ARCH),arm)
 export LIBGCC=$(shell $(CC) $(CFLAGS) $(ARCH3264) -print-libgcc-file-name)
 endif
+
+export ARCH
+

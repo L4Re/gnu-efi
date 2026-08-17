@@ -30,7 +30,7 @@ RtZeroMem (
     IN UINTN     Size
     )
 {
-    INT8        *pt;
+    UINT8        *pt;
 
     pt = Buffer;
     while (Size--) {
@@ -42,6 +42,7 @@ RtZeroMem (
 #pragma RUNTIME_CODE(RtSetMem)
 #endif
 VOID
+EFIAPI
 RUNTIMEFUNCTION
 RtSetMem (
     IN VOID     *Buffer,
@@ -49,7 +50,7 @@ RtSetMem (
     IN UINT8    Value
     )
 {
-    INT8        *pt;
+    UINT8        *pt;
 
     pt = Buffer;
     while (Size--) {
@@ -61,15 +62,18 @@ RtSetMem (
 #pragma RUNTIME_CODE(RtCopyMem)
 #endif
 VOID
+EFIAPI
 RUNTIMEFUNCTION
 RtCopyMem (
     IN VOID        *Dest,
-    IN CONST VOID  *Src,
+    IN VOID  *Src,
     IN UINTN       len
     )
 {
-    CHAR8 *d = (CHAR8*)Dest;
-    CHAR8 *s = (CHAR8*)Src;
+    UINT8 *d, *s;
+
+    d = Dest;
+    s = Src;
 
     if (d == NULL || s == NULL || s == d)
         return;
@@ -87,6 +91,25 @@ RtCopyMem (
 }
 
 #ifndef __GNUC__
+#pragma RUNTIME_CODE(RtCopyMemC)
+#endif
+VOID
+EFIAPI
+RUNTIMEFUNCTION
+RtCopyMemC (
+    IN VOID        *Dest,
+    IN CONST VOID  *Src,
+    IN UINTN       len
+    )
+{
+    /* CopyMem matches ISO C apart from the change to NON-CONST Src
+       Overwriting Src is an intended outcome if overlapping occurs (per memmove)
+       This function is useful to avoid GCC dying in changing pointer setup
+    */
+    RtCopyMem(Dest, (VOID*)Src, len);
+}
+
+#ifndef __GNUC__
 #pragma RUNTIME_CODE(RtCompareMem)
 #endif
 INTN
@@ -97,7 +120,11 @@ RtCompareMem (
     IN UINTN    len
     )
 {
-    CONST CHAR8    *d = Dest, *s = Src;
+    CONST UINT8 *d, *s;
+
+    d = Dest;
+    s = Src;
+
     while (len--) {
         if (*d != *s) {
             return *d - *s;
@@ -110,20 +137,24 @@ RtCompareMem (
     return 0;
 }
 
+
+typedef UINT32 QUAD_UINT32[4]; /* EFI_GUID is 128 bits so 32 x 4 */
+
 #ifndef __GNUC__
 #pragma RUNTIME_CODE(RtCompareGuid)
 #endif
-INTN
+BOOLEAN
+EFIAPI
 RUNTIMEFUNCTION
 RtCompareGuid (
-    IN EFI_GUID     *Guid1,
-    IN EFI_GUID     *Guid2
+    IN CONST EFI_GUID     *Guid1,
+    IN CONST EFI_GUID     *Guid2
     )
 /*++
 
 Routine Description:
 
-    Compares to GUIDs
+    Compares two GUIDs
 
 Arguments:
 
@@ -131,25 +162,42 @@ Arguments:
     Guid2       - guid to compare
 
 Returns:
-    = 0     if Guid1 == Guid2
+    = 1     if Guid1 == Guid2
 
 --*/
 {
-    INT32       *g1, *g2, r;
+    CONST QUAD_UINT32 *g1, *g2;
+    UINT32 r;
 
     //
     // Compare 32 bits at a time
     //
 
-    g1 = (INT32 *) Guid1;
-    g2 = (INT32 *) Guid2;
+    g1 = (CONST QUAD_UINT32*)Guid1;
+    g2 = (CONST QUAD_UINT32*)Guid2;
 
-    r  = g1[0] - g2[0];
-    r |= g1[1] - g2[1];
-    r |= g1[2] - g2[2];
-    r |= g1[3] - g2[3];
+    r  = (*g1)[0] - (*g2)[0];
+    r |= (*g1)[1] - (*g2)[1];
+    r |= (*g1)[2] - (*g2)[2];
+    r |= (*g1)[3] - (*g2)[3];
 
-    return r;
+    if (r==0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
+#ifndef __GNUC__
+#pragma RUNTIME_CODE(RtIsZeroGuid)
+#endif
+BOOLEAN
+EFIAPI
+RUNTIMEFUNCTION
+RtIsZeroGuid (
+IN CONST EFI_GUID     *Guid1
+)
+{
+	return RtCompareGuid(Guid1, &gZeroGuid);
 
+}

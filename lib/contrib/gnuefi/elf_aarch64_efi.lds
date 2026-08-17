@@ -10,6 +10,7 @@ SECTIONS
   .gnu.hash : { *(.gnu.hash) }
   . = ALIGN(4096);
   .eh_frame : { *(.eh_frame) }
+  .eh_frame_hdr : { *(.eh_frame_hdr) }
   .gcc_except_table : { *(.gcc_except_table*) }
   . = ALIGN(4096);
   .text : {
@@ -23,13 +24,6 @@ SECTIONS
   _etext = .;
   _text_size = _etext - _text;
   . = ALIGN(65536);
-  .reloc :
-  {
-    KEEP (*(.reloc))
-  }
-  . = ALIGN(4096);
-  .dynamic  : { *(.dynamic) }
-  . = ALIGN(4096);
   .data :
   {
    _data = .;
@@ -81,7 +75,14 @@ SECTIONS
 
    _bss_end = .;
   }
-
+  . = ALIGN(4096);
+  .reloc :
+  {
+    KEEP (*(.reloc))
+  }
+  . = ALIGN(4096);
+  _DYNAMIC = .;
+  .dynamic  : { *(.dynamic) }
   . = ALIGN(4096);
   .rela :
   {

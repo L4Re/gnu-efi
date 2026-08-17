@@ -1,5 +1,5 @@
 /*
- * Copright (C) 2014 - 2015 Linaro Ltd.
+ * Copyright (C) 2014 - 2015 Linaro Ltd.
  * Author: Ard Biesheuvel <ard.biesheuvel@linaro.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,12 @@ typedef int32_t             intptr_t;
 
 #include <stddef.h>
 
-typedef wchar_t CHAR16;
+// L4: C++ variant is added
+#ifdef __cplusplus
+typedef char16_t CHAR16;
+#else
+typedef uint16_t CHAR16;
+#endif
 #define WCHAR CHAR16
 
 typedef uint64_t   UINT64;
@@ -61,7 +66,7 @@ typedef uint16_t   UINT16;
 typedef int16_t    INT16;
 
 typedef uint8_t    UINT8;
-typedef char       CHAR8;
+typedef unsigned char       CHAR8;
 typedef int8_t     INT8;
 
 #undef VOID
@@ -164,5 +169,5 @@ typedef uint32_t   UINTN;
 
 #define INTERFACE_DECL(x) struct x
 
-#define uefi_call_wrapper(func, va_num, ...) func(__VA_ARGS__)
+#define uefi_call_wrapper(func, va_num, ...) (func)(__VA_ARGS__)
 #define EFI_FUNCTION

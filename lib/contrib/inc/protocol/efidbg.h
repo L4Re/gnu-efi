@@ -1,1 +1,1 @@
-// File removed to simplify license statements
+// Adam: File removed to simplify license statements

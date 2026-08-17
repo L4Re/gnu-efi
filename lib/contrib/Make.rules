@@ -36,31 +36,52 @@
 
 .SECONDARY:
 
+CHAR_SUBSYSTEM=$(subst 0x,\x,$(SUBSYSTEM))
+
+ifeq ($(IS_MINGW32),)
 %.efi: %.so
-	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .rodata -j .rel \
+	@$(ECHO) "  OBJCOPY  $(notdir $@)"
+	$(HIDE)$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .rodata -j .rel \
 		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
 		    -j .areloc -j .reloc $(FORMAT) $*.so $@
+ifeq ($(ARCH),riscv64)
+ifeq ($(SYSTEM_HAS_EFI_OBJCOPY),0)
+	$(HIDE)/bin/echo -ne "$(CHAR_SUBSYSTEM)" | dd of=$@ bs=1 seek=156 count=1 conv=notrunc status=none
+endif
+endif
 
 %.efi.debug: %.so
-	$(OBJCOPY) -j .debug_info -j .debug_abbrev -j .debug_aranges \
+	@$(ECHO) "  OBJCOPY  $(notdir $@)"
+	$(HIDE)$(OBJCOPY) -j .debug_info -j .debug_abbrev -j .debug_aranges \
 		-j .debug_line -j .debug_str -j .debug_ranges \
 		-j .note.gnu.build-id \
 		$(FORMAT) $*.so $@
 
 %.so: %.o
-	$(LD) $(LDFLAGS) $^ -o $@ $(LOADLIBES)
+	@$(ECHO) "  LD       $(notdir $@)"
+	$(HIDE)$(LD) $(LDFLAGS) $(SUBSYSTEM_DEFINES) $^ -o $@ $(LOADLIBES)
+else
+%.efi: %.o
+	@$(ECHO) "  CCLD     $(notdir $@)"
+	$(HIDE)$(CC) $(LDFLAGS) $(SUBSYSTEM_DEFINES) $< -o $@ $(LOADLIBES)
+endif
 
 %.o: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	@$(ECHO) "  CC       $(notdir $@)"
+	$(HIDE)$(CC) $(INCDIR) $(CFLAGS) -c $< -o $@
 
 %.s: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -S $< -o $@
+	@$(ECHO) "  CC       $(notdir $@)"
+	$(HIDE)$(CC) $(INCDIR) $(CFLAGS) -S $< -o $@
 
 %.i: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -E $< -o $@
+	@$(ECHO) "  CPP      $(notdir $@)"
+	$(HIDE)$(CC) $(INCDIR) $(CFLAGS) -E $< -o $@
 
 %.o: %.S
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	@$(ECHO) "  AS       $(notdir $@)"
+	$(HIDE)$(CC) $(INCDIR) $(CFLAGS) -c $< -o $@
 
 %.s: %.S
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -E $< -o $@
+	@$(ECHO) "  CPP      $(notdir $@)"
+	$(HIDE)$(CC) $(INCDIR) $(CFLAGS) -E $< -o $@

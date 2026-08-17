@@ -1,6 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0+ OR BSD-2-Clause */
+/* SPDX-License-Identifier: GPL-2.0-or-later OR BSD-2-Clause */
 /*
- * Copright (C) 2014 - 2015 Linaro Ltd.
+ * Copyright (C) 2014 - 2015 Linaro Ltd.
  * Author: Ard Biesheuvel <ard.biesheuvel@linaro.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,12 +17,11 @@
  */
 
 #include <stdint.h>
+#include <stddef.h>
 
 //
 // Basic EFI types of various widths
 //
-
-#include <stddef.h>
 
 typedef uint64_t                UINT64;
 typedef int64_t                 INT64;
@@ -32,8 +31,13 @@ typedef uint16_t                UINT16;
 typedef int16_t                 INT16;
 typedef uint8_t                 UINT8;
 typedef int8_t                  INT8;
-typedef char                    CHAR8;
-typedef wchar_t                 CHAR16;
+typedef unsigned char                    CHAR8;
+// L4: C++ variant is added
+#ifdef __cplusplus
+typedef char16_t CHAR16;
+#else
+typedef uint16_t                 CHAR16;
+#endif
 #define WCHAR                   CHAR16
 #undef VOID
 typedef void                    VOID;
@@ -124,5 +128,5 @@ typedef uint64_t                UINTN;
 // The following macro provide a workaround for such cases.
 #define INTERFACE_DECL(x)       struct x
 
-#define uefi_call_wrapper(func, va_num, ...) func(__VA_ARGS__)
+#define uefi_call_wrapper(func, va_num, ...) (func)(__VA_ARGS__)
 #define EFI_FUNCTION

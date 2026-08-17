@@ -86,7 +86,7 @@ EFI_DEVICE_PATH EndInstanceDevicePath[] = {
 //
 
 EFI_GUID gEfiGlobalVariableGuid = EFI_GLOBAL_VARIABLE;
-EFI_GUID NullGuid = { 0,0,0,{0,0,0,0,0,0,0,0} };
+EFI_GUID gZeroGuid = EFI_ZERO_GUID;
 
 //
 // Protocol IDs
@@ -103,8 +103,11 @@ EFI_GUID gEfiBlockIoProtocolGuid                    = EFI_BLOCK_IO_PROTOCOL_GUID
 EFI_GUID gEfiBlockIo2ProtocolGuid                   = EFI_BLOCK_IO2_PROTOCOL_GUID;
 EFI_GUID gEfiDiskIoProtocolGuid                     = EFI_DISK_IO_PROTOCOL_GUID;
 EFI_GUID gEfiDiskIo2ProtocolGuid                    = EFI_DISK_IO2_PROTOCOL_GUID;
+EFI_GUID gEfiDxeServicesTableGuid                   = DXE_SERVICES_TABLE_GUID;
 EFI_GUID gEfiSimpleFileSystemProtocolGuid           = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+EFI_GUID gEfiLoadedImageDevicePathProtocolGuid      = EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID;
 EFI_GUID gEfiLoadFileProtocolGuid                   = EFI_LOAD_FILE_PROTOCOL_GUID;
+EFI_GUID gEfiLoadFile2ProtocolGuid                  = EFI_LOAD_FILE2_PROTOCOL_GUID;
 EFI_GUID gEfiDeviceIoProtocolGuid                   = EFI_DEVICE_IO_PROTOCOL_GUID;
 EFI_GUID gEfiUnicodeCollationProtocolGuid           = EFI_UNICODE_COLLATION_PROTOCOL_GUID;
 EFI_GUID gEfiSerialIoProtocolGuid                   = EFI_SERIAL_IO_PROTOCOL_GUID;
@@ -131,6 +134,11 @@ EFI_GUID gEfiEbcProtocolGuid                        = EFI_EBC_PROTOCOL_GUID;
 EFI_GUID gEfiFileInfoGuid                           = EFI_FILE_INFO_ID;
 EFI_GUID gEfiFileSystemInfoGuid                     = EFI_FILE_SYSTEM_INFO_ID;
 EFI_GUID gEfiFileSystemVolumeLabelInfoIdGuid        = EFI_FILE_SYSTEM_VOLUME_LABEL_ID;
+
+//
+// Multi-Processing protocol IDs.
+//
+EFI_GUID gEfiMpServicesProtocolGuid                 = EFI_MP_SERVICES_PROTOCOL_GUID;
 
 //
 // Reference implementation public protocol IDs
@@ -178,8 +186,8 @@ EFI_GUID UnknownDevice      = UNKNOWN_DEVICE_GUID;
 
 EFI_GUID MpsTableGuid             = MPS_TABLE_GUID;
 EFI_GUID AcpiTableGuid            = ACPI_TABLE_GUID;
-EFI_GUID SMBIOSTableGuid          = SMBIOS_TABLE_GUID;
-EFI_GUID SMBIOS3TableGuid         = SMBIOS3_TABLE_GUID;
+EFI_GUID gEfiSmbiosTableGuid      = SMBIOS_TABLE_GUID;
+EFI_GUID gEfiSmbios3TableGuid     = SMBIOS3_TABLE_GUID;
 EFI_GUID SalSystemTableGuid       = SAL_SYSTEM_TABLE_GUID;
 EFI_GUID EfiDtbTableGuid          = EFI_DTB_TABLE_GUID;
 
