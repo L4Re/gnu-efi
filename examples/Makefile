@@ -2,8 +2,11 @@ PKGDIR		?= ..
 L4DIR		?= $(PKGDIR)/../..
 
 EXAMPLE		= efi_hello
-TARGET          = $(EXAMPLE).elfpic
-INSTALL_TARGET  = $(EXAMPLE).efi $(TARGET)
+# With ld.ldd < 23 we get since gnu-efi 4.0.4:
+#   "error: section: .dynamic is not contiguous with other relro sections"
+# Likely related to https://github.com/ncroxon/gnu-efi/issues/47.
+TARGET          = $(if $(filter lld,$(BID_LD_TYPE)),,$(EXAMPLE).elfpic)
+INSTALL_TARGET  = $(if $(filter lld,$(BID_LD_TYPE)),,$(EXAMPLE).efi $(TARGET))
 DEL_ON_CLEAN    = $(INSTALL_TARGET)
 LDSCRIPT        = $(OBJ_BASE)/lib/$(subst -,/,$(SYSTEM))/elf_$(EFI_ARCH)_efi.lds
 SYSTEMS         = x86-plain amd64-plain arm64-plain
